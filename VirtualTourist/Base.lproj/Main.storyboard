@@ -63,18 +63,25 @@
                                                     <rect key="frame" x="0.0" y="0.0" width="187" height="139"/>
                                                     <animations/>
                                                 </imageView>
+                                                <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="pbV-ku-7lV">
+                                                    <rect key="frame" x="83" y="60" width="20" height="20"/>
+                                                    <animations/>
+                                                </activityIndicatorView>
                                             </subviews>
                                             <animations/>
                                             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                                         </view>
                                         <animations/>
                                         <constraints>
+                                            <constraint firstAttribute="centerX" secondItem="pbV-ku-7lV" secondAttribute="centerX" id="BSH-vm-bRo"/>
+                                            <constraint firstAttribute="centerY" secondItem="pbV-ku-7lV" secondAttribute="centerY" id="CGN-Q1-sk9"/>
                                             <constraint firstAttribute="bottomMargin" secondItem="fUe-1x-91X" secondAttribute="bottom" constant="-8" id="IkV-eu-yc4"/>
                                             <constraint firstAttribute="trailingMargin" secondItem="fUe-1x-91X" secondAttribute="trailing" constant="-8" id="rbF-Ns-On9"/>
                                             <constraint firstItem="fUe-1x-91X" firstAttribute="leading" secondItem="xqb-1g-2Mm" secondAttribute="leadingMargin" constant="-8" id="rzw-TD-sVB"/>
                                             <constraint firstItem="fUe-1x-91X" firstAttribute="top" secondItem="xqb-1g-2Mm" secondAttribute="topMargin" constant="-8" id="tFP-Xs-QkD"/>
                                         </constraints>
                                         <connections>
+                                            <outlet property="cellActivity" destination="pbV-ku-7lV" id="7lu-3a-kwI"/>
                                             <outlet property="flickerImage" destination="fUe-1x-91X" id="aYU-qT-xKC"/>
                                         </connections>
                                     </collectionViewCell>
@@ -93,12 +100,20 @@
                                     <barButtonItem style="plain" systemItem="flexibleSpace" id="G0L-eX-Cer"/>
                                 </items>
                             </toolbar>
+                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LKt-rp-9G1">
+                                <rect key="frame" x="279" y="290" width="42" height="20.5"/>
+                                <animations/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <animations/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                         <constraints>
                             <constraint firstItem="jlh-Ho-13a" firstAttribute="top" secondItem="agK-SD-OpM" secondAttribute="bottom" id="51G-ai-FNv"/>
                             <constraint firstAttribute="trailingMargin" secondItem="TS2-42-FUH" secondAttribute="trailing" constant="-16" id="5xg-ax-tA1"/>
+                            <constraint firstAttribute="centerX" secondItem="LKt-rp-9G1" secondAttribute="centerX" id="C2G-8d-hoN"/>
                             <constraint firstAttribute="trailingMargin" secondItem="sNx-Qh-ghW" secondAttribute="trailing" constant="-16" id="H6x-JP-kAM"/>
                             <constraint firstItem="sNx-Qh-ghW" firstAttribute="leading" secondItem="fSB-7d-CwX" secondAttribute="leadingMargin" constant="-16" id="KFP-Ae-obd"/>
                             <constraint firstItem="jlh-Ho-13a" firstAttribute="top" secondItem="TS2-42-FUH" secondAttribute="bottom" id="bnB-Dm-bCG"/>
@@ -106,12 +121,14 @@
                             <constraint firstAttribute="trailingMargin" secondItem="agK-SD-OpM" secondAttribute="trailing" constant="-16" id="k1t-18-opN"/>
                             <constraint firstItem="sNx-Qh-ghW" firstAttribute="top" secondItem="fSB-7d-CwX" secondAttribute="topMargin" id="kZW-E7-Kk2"/>
                             <constraint firstItem="TS2-42-FUH" firstAttribute="top" secondItem="sNx-Qh-ghW" secondAttribute="top" constant="200" id="oTp-NT-gIu"/>
+                            <constraint firstAttribute="centerY" secondItem="LKt-rp-9G1" secondAttribute="centerY" id="p6B-y9-cpp"/>
                             <constraint firstItem="agK-SD-OpM" firstAttribute="leading" secondItem="fSB-7d-CwX" secondAttribute="leadingMargin" constant="-16" id="yAe-L1-Gdq"/>
                         </constraints>
                     </view>
                     <connections>
                         <outlet property="bottomButton" destination="MvZ-v8-dhg" id="baQ-cB-qgR"/>
                         <outlet property="collectionView" destination="TS2-42-FUH" id="bsy-HT-Gbr"/>
+                        <outlet property="infoLabel" destination="LKt-rp-9G1" id="Z1n-rm-uPA"/>
                         <outlet property="mapView" destination="sNx-Qh-ghW" id="gwk-V2-gl2"/>
                     </connections>
                 </viewController>

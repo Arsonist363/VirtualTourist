@@ -6,13 +6,12 @@
 //  Copyright (c) 2015 Cesar Colorado. All rights reserved.
 //
 
-import Foundation
+import UIKit
 import CoreData
-import MapKit
 
 @objc(Pin)
 
-class Pin: NSManagedObject, MKAnnotation {
+class Pin: NSManagedObject {
 
     //our managed attributes
     @NSManaged var latitude: NSNumber
@@ -24,21 +23,11 @@ class Pin: NSManagedObject, MKAnnotation {
     }
     
     init(annotationLatitude: Double, annotationLongitude: Double, context: NSManagedObjectContext) {
-        
-        //initializing with entity "Pin"
         let entity = NSEntityDescription.entityForName("Pin", inManagedObjectContext: context)!
         
         super.init(entity: entity, insertIntoManagedObjectContext: context)
-        
-        
-        latitude = NSNumber(double: annotationLatitude)
-        
-        longitude = NSNumber(double: annotationLongitude)
-    }
-    
-    //returning the coordinate so as to conform to MKAnnotation protocol
-    var coordinate: CLLocationCoordinate2D {
-        return CLLocationCoordinate2D(latitude: latitude as Double, longitude: longitude as Double)
+        latitude = annotationLatitude as Double
+        longitude = annotationLongitude as Double
     }
 
 }

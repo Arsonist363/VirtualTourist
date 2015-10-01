@@ -35,9 +35,7 @@ class Flicker:  NSObject {
         session = NSURLSession.sharedSession()
         super.init()
     }
-    
-    func getPictures(latitude: Double, longitude: Double, completionHandler: (urls: [String]?, success: Bool, error: String?) -> Void) {
-        
+    func getmorepages(latitude: Double, longitude: Double, completionHandler: (urls: [String]?, success: Bool, error: String?)-> Void) {
         /* 1. Set the parameters */
         let methodArguments = [
             "method": METHOD_NAME,
@@ -47,9 +45,8 @@ class Flicker:  NSObject {
             "extras": EXTRAS,
             "format": DATA_FORMAT,
             "nojsoncallback": NO_JSON_CALLBACK,
-    
         ]
-
+        
         /* 2. Build the URL */
         let urlString = BASE_URL + escapedParameters(methodArguments)
         let url = NSURL(string: urlString)!
@@ -71,19 +68,73 @@ class Flicker:  NSObject {
                     completionHandler(urls: nil, success: false, error: error)
                 }else{
                     if let photosDictionary = response?["photos"] as? [String:AnyObject]{
-                        if let photos = photosDictionary["photo"] as? [[String: AnyObject]]{
-                            let total = photos.count
-                            var temp = photos
-                            let max = min(21, total)
-                            temp = Array(temp[0..<max])
-                           
-                            let urls = map(temp) { (photo: [String:AnyObject]) -> String in
-                                let urlString = photo["url_m"] as! String
-                                return urlString
-                            }
-                            completionHandler(urls: urls, success: true, error: nil)
+                        if let totalPages = photosDictionary["pages"] as? Int {
+                            /* Flickr API - will only return up the 4000 images (100 per page * 40 page max) */
+                            let pageLimit = min(totalPages, 40)
+                            let randomPage = Int(arc4random_uniform(UInt32(pageLimit))) + 1
+                            self.getPictures(latitude, longitude: longitude, pageNumber: randomPage, completionHandler: { (urls, success, error) -> Void in
+                                completionHandler(urls: urls, success: true, error: nil)
+                            })
                         }
+                    }
+                }
+                
+            }
+        }
+        /* 7. Start the request */
+        task.resume()
+    }
+    func getPictures(latitude: Double, longitude: Double, pageNumber: Int, completionHandler: (urls: [String]?, success: Bool, error: String?) -> Void) {
+        var methodArguments: [String : AnyObject]
 
+        /* 1. Set the parameters */
+        methodArguments = [
+            "method": METHOD_NAME,
+            "api_key": API_KEY,
+            "bbox": createBoundingBoxString(latitude, longitude: longitude),
+            "safe_search": SAFE_SEARCH,
+            "extras": EXTRAS,
+            "format": DATA_FORMAT,
+            "nojsoncallback": NO_JSON_CALLBACK,
+            "page": pageNumber
+        ]
+        
+        /* 2. Build the URL */
+        let urlString = BASE_URL + escapedParameters(methodArguments)
+        let url = NSURL(string: urlString)!
+        
+        /* 3. Configure the request */
+        let request = NSMutableURLRequest(URL: url)
+        
+        /* 4. Make the request */
+        let task = session.dataTaskWithRequest(request) {data, response, error in
+            if error != nil {
+                completionHandler(urls: nil, success: false, error: "There was an error contacting the Parse server")
+            } else {
+                
+                /* 5/6. Parse the data and use the data (happens in completion handler) */
+                
+                let response = NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.AllowFragments, error: nil) as? [String : AnyObject]
+                
+                if let error = response!["error"] as? String {
+                    completionHandler(urls: nil, success: false, error: error)
+                }else{
+                    if let photosDictionary = response?["photos"] as? [String:AnyObject]{
+            
+                            // get the first 21 pictures
+                            if let photos = photosDictionary["photo"] as? [[String: AnyObject]]{
+                                let total = photos.count
+                                var temp = photos
+                                let max = min(21, total)
+                                temp = Array(temp[0..<max])
+                           
+                                let urls = map(temp) { (photo: [String:AnyObject]) -> String in
+                                    let urlString = photo["url_m"] as! String
+                                    return urlString
+                                }
+                                completionHandler(urls: urls, success: true, error: nil)
+                            }
+                        
                     }
                 }
                 
@@ -111,7 +162,7 @@ class Flicker:  NSObject {
                 completionHandler(imageData: nil, error: error)
             } else {
                 completionHandler(imageData: data, error: nil)
-                
+
             }
             
         })

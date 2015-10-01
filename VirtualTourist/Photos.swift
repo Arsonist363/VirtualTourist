@@ -28,11 +28,11 @@ class Photos : NSManagedObject{
     
     var image: UIImage? {
         get {
-            return Flicker.Caches.imageCache.imageWithIdentifier(imageURL)
+            return Flicker.Caches.imageCache.imageWithIdentifier(imageURL!.lastPathComponent)
         }
         
         set {
-            Flicker.Caches.imageCache.storeImage(image, withIdentifier: imageURL!)
+            Flicker.Caches.imageCache.storeImage(image, withIdentifier: imageURL!.lastPathComponent)
         }
     }
 
@@ -47,6 +47,7 @@ class Photos : NSManagedObject{
         let entity = NSEntityDescription.entityForName("Photos", inManagedObjectContext: context)!
         super.init(entity: entity, insertIntoManagedObjectContext: context)
         imageURL = dictionary[Keys.imageURL] as? String
+
     }
     
     

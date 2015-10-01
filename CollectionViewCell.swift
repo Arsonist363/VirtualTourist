@@ -11,5 +11,5 @@ import UIKit
 class CollectionViewCell: UICollectionViewCell {
     
     @IBOutlet weak var flickerImage: UIImageView!
-    
+    @IBOutlet weak var cellActivity: UIActivityIndicatorView!
 }

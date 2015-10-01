@@ -15,12 +15,14 @@ class PhotoViewController: UIViewController, MKMapViewDelegate, NSFetchedResults
     @IBOutlet weak var mapView: MKMapView!
     @IBOutlet weak var collectionView: UICollectionView!
     @IBOutlet weak var bottomButton: UIBarButtonItem!
+    @IBOutlet weak var infoLabel: UILabel!
     
     
     
     
     // Store Pin
     var pin: Pin!
+    var photo: Photos!
     
     
     // Keep the changes. Keep track of insertions, deletions, and updates.
@@ -40,7 +42,7 @@ class PhotoViewController: UIViewController, MKMapViewDelegate, NSFetchedResults
         super.viewDidLoad()
         //appDelegate for context save method
         appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
-        println(pin.photo.isEmpty)
+        
         //initializing our context
         sharedContext = appDelegate.managedObjectContext
         
@@ -68,7 +70,17 @@ class PhotoViewController: UIViewController, MKMapViewDelegate, NSFetchedResults
         //Set the delegate to this view controller
         fetchedResultsController.delegate = self
         
+        
         updateBottomButton()
+    }
+    
+    override func viewDidAppear(animated: Bool) {
+        //check to see if there are photos
+        if pin.photo.isEmpty{
+            infoLabel.text = "No pictures found for this location"
+            infoLabel.hidden = false
+        }
+        
     }
     // Layout the collection view
     
@@ -108,23 +120,33 @@ class PhotoViewController: UIViewController, MKMapViewDelegate, NSFetchedResults
     
      // MARK: - Configure Cell
     func configureCell(cell: CollectionViewCell, photo: Photos){
+        cell.cellActivity.startAnimating()
         var flickerImage = UIImage(named: "flickerimage")
-        
-        if photo.image != nil {
-            println("catch working")
+       
+        if  photo.image != nil{
             flickerImage = photo.image
         }else{
+            println("notworking")
+            
             Flicker.sharedInstance().downloadpics(photo.imageURL!, completionHandler: { (imageData, error) -> Void in
+                dispatch_async(dispatch_get_main_queue()) {
                 if let data = imageData {
-                    dispatch_async(dispatch_get_main_queue()) {
                         let image = UIImage(data: data)
-                        photo.image = image
+        
+                    
+                            // update the model, so that the infrmation gets cashed
+                            photo.image = image
+                    
+                    
+                        // update the cell later, on the main thread
                         cell.flickerImage.image = image
-                        self.appDelegate.saveContext()
                     }
-                }            })
+                }
+            })
         }
         cell.flickerImage.image = flickerImage
+        cell.cellActivity.startAnimating()
+        cell.cellActivity.hidden = true
     }
     
     func numberOfSectionsInCollectionView(collectionView: UICollectionView) -> Int {
@@ -183,7 +205,31 @@ class PhotoViewController: UIViewController, MKMapViewDelegate, NSFetchedResults
         }
     }
     func fetchmorepics(){
+        let latitude = self.pin.latitude as Double
+        let longitude = self.pin.latitude as Double
+        let pin = self.pin
+        for photos in fetchedResultsController.fetchedObjects as! [Photos] {
+            sharedContext.deleteObject(photos)
+        }
+        // inform the user of the update
+        infoLabel.hidden = false
+        infoLabel.text = "Getting a new collection"
         
+        // fetch new pictures
+        
+        Flicker.sharedInstance().getmorepages(latitude, longitude: longitude) { (urls, success, error) -> Void in
+            
+            for (index, url) in enumerate(urls!){
+                let dictionary = ["imageURL" : url]
+                dispatch_async(dispatch_get_main_queue()) {
+                    let photo = Photos(dictionary: dictionary, context: self.appDelegate.managedObjectContext!)
+                    photo.pin = pin
+                    //self.appDelegate.saveContext()
+                }
+                }
+            self.infoLabel.hidden = true
+            self.collectionView.reloadData()
+            }
     }
     
     func deleteSelectedPhotos(){
@@ -195,6 +241,7 @@ class PhotoViewController: UIViewController, MKMapViewDelegate, NSFetchedResults
         
         for items in photosToDelete {
             self.sharedContext?.deleteObject(items)
+            items.image = nil
         }
         
         selectedIndexes = [NSIndexPath]()

@@ -20,7 +20,6 @@ class ViewController: UIViewController, MKMapViewDelegate {
     var appDelegate: AppDelegate!
     var sharedContext: NSManagedObjectContext!
     
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -28,8 +27,9 @@ class ViewController: UIViewController, MKMapViewDelegate {
         appDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
         
         //initializing our context
-        sharedContext = appDelegate.managedObjectContext
-        
+        dispatch_async(dispatch_get_main_queue()) {
+        self.sharedContext = self.appDelegate.managedObjectContext
+        }
         // Adding UI buttons
         self.navigationItem.rightBarButtonItem = self.editButtonItem()
         
@@ -43,30 +43,34 @@ class ViewController: UIViewController, MKMapViewDelegate {
         //Set ViewController as mapView delegate
         mapView.delegate = self
         
-        //add pins to map
-        mapView.addAnnotations(fetchAllPins())
-        
+        fetchAllPins()
         
     }
     
     func dropPin(gestureRecognizer: UIGestureRecognizer) {
+        dispatch_async(dispatch_get_main_queue()) {
+        let tapPoint: CGPoint = gestureRecognizer.locationInView(self.mapView)
+        let touchMapCoordinate: CLLocationCoordinate2D = self.mapView.convertPoint(tapPoint, toCoordinateFromView: self.mapView)
+        let annotation = MKPointAnnotation()
         
-        let tapPoint: CGPoint = gestureRecognizer.locationInView(mapView)
-        let touchMapCoordinate: CLLocationCoordinate2D = mapView.convertPoint(tapPoint, toCoordinateFromView: mapView)
-        
-        if UIGestureRecognizerState.Began == gestureRecognizer.state {
+            if UIGestureRecognizerState.Began == gestureRecognizer.state {
             
-            //initialize our Pin with our coordinates and the context from AppDelegate
-            let pin = Pin(annotationLatitude: touchMapCoordinate.latitude, annotationLongitude: touchMapCoordinate.longitude, context: appDelegate.managedObjectContext!)
+                //initialize our Pin with our coordinates and the context from AppDelegate
+                dispatch_async(dispatch_get_main_queue()) {
+                    let pin = Pin(annotationLatitude: touchMapCoordinate.latitude, annotationLongitude: touchMapCoordinate.longitude, context: self.appDelegate.managedObjectContext!)
+                    
+                    //add photos to pin
+                    self.getPhotos(pin)
+                }
+                //add the pin to the map
+                annotation.coordinate = touchMapCoordinate
+                self.mapView.addAnnotation(annotation)
             
-            //add the pin to the map
-            mapView.addAnnotation(pin)
+                
             
-            //add photos to pin
-            self.getPhotos(pin)
-            
-            //save our context.
-            appDelegate.saveContext()
+                //save our context.
+                self.appDelegate.saveContext()
+            }
         }
     }
     override func setEditing(editing: Bool, animated: Bool) {
@@ -82,71 +86,78 @@ class ViewController: UIViewController, MKMapViewDelegate {
     }
     
     func mapView(mapView: MKMapView!, didSelectAnnotationView view: MKAnnotationView!) {
+        dispatch_async(dispatch_get_main_queue()) {
         //cast pin
-        let pin = view.annotation as! Pin
+        let annotation = view.annotation as MKAnnotation
+        let core = annotation.coordinate
+        let pin = self.fetchAPin(core.latitude, longitude: core.longitude).first
        
         if self.editing{
             
             //delete from our context
-            sharedContext.deleteObject(pin)
+            self.sharedContext.deleteObject(pin!)
             
             //remove the annotation from the map
-            mapView.removeAnnotation(pin)
+            mapView.removeAnnotation(annotation)
             
         }
         else{
-            let latitude = pin.latitude as Double
-            let longitude = pin.longitude as Double
+            let latitude = core.latitude
+            let longitude = core.longitude
             
             //pass pin to new controller
-            let controller = self.storyboard!.instantiateViewControllerWithIdentifier("PhotoViewController") as! PhotoViewController
-            controller.pin = self.fetchAPin(latitude, longitude: longitude).first
-            self.navigationController?.pushViewController(controller, animated: true)
+            
+                let controller = self.storyboard!.instantiateViewControllerWithIdentifier("PhotoViewController") as! PhotoViewController
+                controller.pin = self.fetchAPin(latitude, longitude: longitude).first
+                self.navigationController?.pushViewController(controller, animated: true)
+            }
+        
+        
         }
-        
-        
         
     }
     func getPhotos(pin: Pin){
         let latitude = pin.latitude as Double
         let longitude = pin.longitude as Double
-        
-        
-        Flicker.sharedInstance().getPictures(latitude, longitude: longitude){ (urls, success, error) in
-            if success {
-                for (index, url) in enumerate(urls!){
-                    let dictionary = ["imageURL" : url]
-                    let photo = Photos(dictionary: dictionary, context: self.appDelegate.managedObjectContext!)
-                    photo.pin = pin
+        dispatch_async(dispatch_get_main_queue()) {
+            Flicker.sharedInstance().getPictures(latitude, longitude: longitude, pageNumber: 1){ (urls, success, error) in
+                if success {
+                    dispatch_async(dispatch_get_main_queue()) {
+
+                    for (index, url) in enumerate(urls!){
+                        let dictionary = ["imageURL" : url]
+                        
+                        let photo = Photos(dictionary: dictionary, context: self.appDelegate.managedObjectContext!)
+                        photo.pin = pin
                     
-                    //save our context
+                        //save our context
                     
-                    Flicker.sharedInstance().downloadpics(photo.imageURL!, completionHandler: { (imageData, error) -> Void in
-                        if let imageData = imageData {
-                            Flicker.Caches.imageCache.storeImage(UIImage(data: imageData), withIdentifier: photo.imageURL!.lastPathComponent)
-                            let image = UIImage(data: imageData)
-                            photo.image = image
-                            self.appDelegate.saveContext()
-                        }
-                    })
+                        Flicker.sharedInstance().downloadpics(photo.imageURL!, completionHandler: { (imageData, error) -> Void in
+                            dispatch_async(dispatch_get_main_queue()) {
+                            if let imageData = imageData {
+                                Flicker.Caches.imageCache.storeImage(UIImage(data: imageData), withIdentifier: photo.imageURL!.lastPathComponent)
+                                }}
+                        })
                    }
-                
+                }
             }
             else {
-                println("bad")
+                
             }
         }
-        
+        }
     }
     
     
-    func fetchAllPins() -> [Pin] {
-        
+    // Get all of the pins from core data
+    func fetchAllPins() -> [Pin]  {
         let error: NSErrorPointer = nil
         // Create the Fetch Request
         let fetchRequest = NSFetchRequest(entityName: "Pin")
+        
         // Execute the Fetch Request
-        let results = sharedContext.executeFetchRequest(fetchRequest, error: error)
+        let results = self.sharedContext?.executeFetchRequest(fetchRequest, error: nil)
+        
         // Check for Errors
         if error != nil {
             println("Error in fectchAllActors(): \(error)")
@@ -154,16 +165,19 @@ class ViewController: UIViewController, MKMapViewDelegate {
         // Return the results, cast to an array of Pin objects
         return results as! [Pin]
     }
-    
-    func fetchAPin(latitude: Double, longitude: Double) -> [Pin] {
+
+    // fetch a pin from core data
+    func fetchAPin(latitude: Double?, longitude: Double?) -> [Pin] {
         
         let error: NSErrorPointer = nil
         // Create the Fetch Request
         let fetchRequest = NSFetchRequest(entityName: "Pin")
         
-        //fetch pin with specific coordinates
-        let predicate = NSPredicate(format:"latitude == %lf && longitude == %lf", latitude, longitude)
-        fetchRequest.predicate = predicate
+        if latitude != nil && longitude != nil {
+            //fetch pin with specific coordinates
+            let predicate = NSPredicate(format:"latitude == %lf && longitude == %lf", latitude!, longitude!)
+            fetchRequest.predicate = predicate
+        }
         
         // Execute the Fetch Request
         let results = self.sharedContext?.executeFetchRequest(fetchRequest, error: nil)
